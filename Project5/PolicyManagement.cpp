@@ -281,10 +281,15 @@ void PolicyManagement::approvePolicyByManager(int policyId) {
     SQLAllocHandle(SQL_HANDLE_STMT, sqlConnHandle, &sqlStmtHandle);
 
     std::wcout << L"Approving policy ID: " << policyId << std::endl;
-    std::wstring policyNumber = L"PAKUYTHHG" + std::to_wstring(policyId);
 
+    // Generate Policy Number
+    std::wstring policyNumber = L"PAKUYTHHG" + std::to_wstring(policyId);
+    std::wcerr << L"Generated Policy Number: " << policyNumber << std::endl;
+
+    // SQL Update Query
     std::wstring query = L"UPDATE policy_proposals SET status = 'Approved', policy_number = ? WHERE id = ?";
 
+    // Prepare SQL Statement
     if (SQLPrepareW(sqlStmtHandle, (SQLWCHAR*)query.c_str(), SQL_NTS) != SQL_SUCCESS) {
         std::wcout << L"Error preparing SQL statement." << std::endl;
         printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
@@ -292,13 +297,23 @@ void PolicyManagement::approvePolicyByManager(int policyId) {
         return;
     }
 
-    if (SQLBindParameter(sqlStmtHandle, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &policyId, 0, NULL) != SQL_SUCCESS) {
-        std::wcout << L"Error binding SQL parameter." << std::endl;
+    // Bind First Parameter (Policy Number)
+    if (SQLBindParameter(sqlStmtHandle, 1, SQL_PARAM_INPUT, SQL_C_WCHAR, SQL_WVARCHAR, policyNumber.size(), 0, (SQLWCHAR*)policyNumber.c_str(), 0, NULL) != SQL_SUCCESS) {
+        std::wcout << L"Error binding policy number parameter." << std::endl;
         printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
         SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
         return;
     }
 
+    // Bind Second Parameter (Policy ID)
+    if (SQLBindParameter(sqlStmtHandle, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &policyId, 0, NULL) != SQL_SUCCESS) {
+        std::wcout << L"Error binding policy ID parameter." << std::endl;
+        printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
+        SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
+        return;
+    }
+
+    // Execute SQL Update
     if (SQLExecute(sqlStmtHandle) != SQL_SUCCESS) {
         std::wcout << L"Error executing SQL update query." << std::endl;
         printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
@@ -310,3 +325,4 @@ void PolicyManagement::approvePolicyByManager(int policyId) {
 
     SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
 }
+
