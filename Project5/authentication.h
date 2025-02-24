@@ -1,13 +1,16 @@
 #pragma once
-#ifndef AUTHENTICATION_H
-#define AUTHENTICATION_H
 
+#include "db_connection.h"
+#include "User.h"
 #include <windows.h>
 #include <sql.h>
 #include <sqlext.h>
-#include <sqltypes.h>
 #include <string>
 
-bool AuthenticateUser(SQLHANDLE sqlConnHandle, const std::wstring& username, const std::wstring& password, std::wstring& role);
+class Authentication {
+public:
+    static bool AuthenticateUser(SQLHANDLE sqlConnHandle, const std::wstring& email, const std::wstring& password, User& authenticatedUser);
+};
 
-#endif // AUTHENTICATION_H
+// Declare SignIn function here
+void SignIn(SQLHANDLE sqlConnHandle);

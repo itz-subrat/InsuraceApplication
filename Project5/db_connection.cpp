@@ -1,13 +1,11 @@
 #include "db_connection.h"
 #include <iostream>
-#include <cwchar>
 
 SQLHANDLE ConnectToSQLServer(bool useWindowsAuth) {
     SQLHANDLE sqlEnvHandle, sqlConnHandle;
     SQLRETURN retCode;
     SQLWCHAR connectionString[512];
 
-    // Connection string
     if (useWindowsAuth) {
         swprintf(connectionString, sizeof(connectionString) / sizeof(SQLWCHAR),
             L"DRIVER={ODBC Driver 17 for SQL Server};SERVER=localhost;"
@@ -15,8 +13,8 @@ SQLHANDLE ConnectToSQLServer(bool useWindowsAuth) {
     }
     else {
         swprintf(connectionString, sizeof(connectionString) / sizeof(SQLWCHAR),
-            L"DRIVER={ODBC Driver 17 for SQL Server};SERVER=INLT3178\\SQLEXPRESS;"
-            L"DATABASE=SQL_TRAINING;UID=sa;PWD=YourStrongPassword;");
+            L"DRIVER={ODBC Driver 17 for SQL Server};SERVER=localhost;"
+            L"DATABASE=master;UID=sa;PWD=YourStrongPassword;");
     }
 
     // Allocate environment handle
@@ -25,7 +23,7 @@ SQLHANDLE ConnectToSQLServer(bool useWindowsAuth) {
         return NULL;
     }
 
-    // Set the ODBC version environment attribute
+    // Set ODBC version
     SQLSetEnvAttr(sqlEnvHandle, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0);
 
     // Allocate connection handle
@@ -42,14 +40,16 @@ SQLHANDLE ConnectToSQLServer(bool useWindowsAuth) {
         return sqlConnHandle;
     }
     else {
-        std::cerr << "Failed to connect to SQL Server.\n";
+        std::cerr << "SQL Connection Handle Allocation Failed!\n";
         SQLFreeHandle(SQL_HANDLE_DBC, sqlConnHandle);
         return NULL;
     }
 }
 
 void DisconnectFromSQLServer(SQLHANDLE sqlConnHandle) {
-    SQLDisconnect(sqlConnHandle);
-    SQLFreeHandle(SQL_HANDLE_DBC, sqlConnHandle);
-    std::cout << "Disconnected from SQL Server.\n";
+    if (sqlConnHandle) {
+        SQLDisconnect(sqlConnHandle);
+        SQLFreeHandle(SQL_HANDLE_DBC, sqlConnHandle);
+        std::cout << "Disconnected from SQL Server.\n";
+    }
 }
