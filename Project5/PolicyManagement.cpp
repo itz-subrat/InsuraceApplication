@@ -281,8 +281,9 @@ void PolicyManagement::approvePolicyByManager(int policyId) {
     SQLAllocHandle(SQL_HANDLE_STMT, sqlConnHandle, &sqlStmtHandle);
 
     std::wcout << L"Approving policy ID: " << policyId << std::endl;
+    std::wstring policyNumber = L"PAKUYTHHG" + std::to_wstring(policyId);
 
-    std::wstring query = L"UPDATE policy_proposals SET status = 'Approved' WHERE id = ?";
+    std::wstring query = L"UPDATE policy_proposals SET status = 'Approved', policy_number = ? WHERE id = ?";
 
     if (SQLPrepareW(sqlStmtHandle, (SQLWCHAR*)query.c_str(), SQL_NTS) != SQL_SUCCESS) {
         std::wcout << L"Error preparing SQL statement." << std::endl;

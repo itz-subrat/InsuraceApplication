@@ -6,7 +6,8 @@
 
 bool Authentication::AuthenticateUser(SQLHANDLE sqlConnHandle, const std::wstring& email, const std::wstring& password, User& authenticatedUser) {
     SQLHANDLE sqlStmtHandle;
-    SQLWCHAR sqlQuery[] = L"SELECT id, first_name, last_name, role FROM Users WHERE email = ?";
+	std::wcout << L"Password: " << password << L"\n";
+    SQLWCHAR sqlQuery[] = L"SELECT id, first_name, last_name, role FROM Users WHERE email = ? and password = ? ";
 
     if (SQLAllocHandle(SQL_HANDLE_STMT, sqlConnHandle, &sqlStmtHandle) != SQL_SUCCESS) {
         std::wcerr << L"Error allocating statement handle.\n";
@@ -21,6 +22,12 @@ bool Authentication::AuthenticateUser(SQLHANDLE sqlConnHandle, const std::wstrin
 
     if (SQLBindParameter(sqlStmtHandle, 1, SQL_PARAM_INPUT, SQL_C_WCHAR, SQL_WVARCHAR, 100, 0, (SQLWCHAR*)email.c_str(), 0, NULL) != SQL_SUCCESS) {
         std::wcerr << L"Error binding email parameter.\n";
+        SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
+        return false;
+    }
+
+    if (SQLBindParameter(sqlStmtHandle, 2, SQL_PARAM_INPUT, SQL_C_WCHAR, SQL_WVARCHAR, 100, 0, (SQLWCHAR*)password.c_str(), 0, NULL) != SQL_SUCCESS) {
+        std::wcerr << L"Error binding password parameter.\n";
         SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
         return false;
     }
