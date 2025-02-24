@@ -175,16 +175,60 @@ bool CancellationManagement::processCancellation(int cancellationId, int underwr
 
         SQLBindParameter(sqlStmtHandle, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &cancellationId, 0, NULL);
 
-        if (SQLExecute(sqlStmtHandle) == SQL_SUCCESS) {
-            std::wcout << L"Policy status updated to 'cancelled'.\n";
+        if (SQLExecute(sqlStmtHandle) != SQL_SUCCESS) {
+            std::wcout << L"Error updating policy status.\n";
+            printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
             SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
-            return true;
+            return false;
         }
 
-        std::wcout << L"Error updating policy status.\n";
-        printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
+        std::wcout << L"Policy status updated to 'cancelled'.\n";
         SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
-        return false;
+
+        // Fetch policy number and user ID for notification
+        SQLAllocHandle(SQL_HANDLE_STMT, sqlConnHandle, &sqlStmtHandle);
+        std::wstring fetchDetailsQuery = L"SELECT pp.policy_number, c.requested_by FROM policy_proposals pp JOIN cancellations c ON pp.id = c.policy_id WHERE c.id = ?";
+        wchar_t policyNumber[50];
+        int userId;
+        SQLLEN indPolicyNumber, indUserId;
+
+        if (SQLPrepareW(sqlStmtHandle, (SQLWCHAR*)fetchDetailsQuery.c_str(), SQL_NTS) == SQL_SUCCESS) {
+            SQLBindParameter(sqlStmtHandle, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &cancellationId, 0, NULL);
+            SQLBindCol(sqlStmtHandle, 1, SQL_C_WCHAR, policyNumber, sizeof(policyNumber), &indPolicyNumber);
+            SQLBindCol(sqlStmtHandle, 2, SQL_C_LONG, &userId, 0, &indUserId);
+
+            if (SQLExecute(sqlStmtHandle) == SQL_SUCCESS && SQLFetch(sqlStmtHandle) == SQL_SUCCESS) {
+                SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
+
+                // Insert notification
+                SQLAllocHandle(SQL_HANDLE_STMT, sqlConnHandle, &sqlStmtHandle);
+                std::wstring insertNotificationQuery = L"INSERT INTO notifications (user_id, message, sent_date) VALUES (?, ?, GETDATE())";
+                std::wstring message = L"Your policy " + std::wstring(policyNumber) + L" was cancelled successfully.";
+
+                if (SQLPrepareW(sqlStmtHandle, (SQLWCHAR*)insertNotificationQuery.c_str(), SQL_NTS) == SQL_SUCCESS) {
+                    SQLBindParameter(sqlStmtHandle, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &userId, 0, NULL);
+                    SQLBindParameter(sqlStmtHandle, 2, SQL_PARAM_INPUT, SQL_C_WCHAR, SQL_WVARCHAR, message.size(), 0, (SQLWCHAR*)message.c_str(), message.size() * sizeof(SQLWCHAR), NULL);
+
+                    if (SQLExecute(sqlStmtHandle) == SQL_SUCCESS) {
+                        std::wcout << L"Notification saved: " << message << L"\n";
+                    }
+                    else {
+                        std::wcout << L"Error inserting notification.\n";
+                        printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
+                    }
+                }
+                else {
+                    std::wcout << L"Error preparing notification insert statement.\n";
+                    printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
+                }
+            }
+            else {
+                std::wcout << L"Error fetching policy details.\n";
+                printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
+            }
+        }
+
+        SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
     }
 
     return true;
