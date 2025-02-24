@@ -75,7 +75,7 @@ std::vector<std::wstring> PolicyProposalManagement::searchPolicy(int clientId) {
 
     std::wcout << L"Searching for policies for client ID: " << clientId << std::endl;
 
-    std::wstring query = L"SELECT policy_number, insurance_type, life_cover_amount, coverage_age, tobacco_consumption, "
+    std::wstring query = L"SELECT id, policy_number, insurance_type, life_cover_amount, coverage_age, tobacco_consumption, "
         L"monthly_premium, payment_tenure, start_date, end_date, status "
         L"FROM policy_proposals WHERE client_id = ?";
 
@@ -102,27 +102,29 @@ std::vector<std::wstring> PolicyProposalManagement::searchPolicy(int clientId) {
 
     wchar_t policyNumber[50], insuranceType[100], startDate[20], endDate[20], status[20];
     double lifeCoverAmount, monthlyPremium;
-    int coverageAge, tobaccoConsumption, paymentTenure;
+    int id, coverageAge, tobaccoConsumption, paymentTenure;
     SQLLEN indicator;
 
     // Binding Columns
-    SQLBindCol(sqlStmtHandle, 1, SQL_C_WCHAR, policyNumber, sizeof(policyNumber), &indicator);
-    SQLBindCol(sqlStmtHandle, 2, SQL_C_WCHAR, insuranceType, sizeof(insuranceType), &indicator);
-    SQLBindCol(sqlStmtHandle, 3, SQL_C_DOUBLE, &lifeCoverAmount, 0, &indicator);
-    SQLBindCol(sqlStmtHandle, 4, SQL_C_LONG, &coverageAge, 0, &indicator);
-    SQLBindCol(sqlStmtHandle, 5, SQL_C_LONG, &tobaccoConsumption, 0, &indicator);
-    SQLBindCol(sqlStmtHandle, 6, SQL_C_DOUBLE, &monthlyPremium, 0, &indicator);
-    SQLBindCol(sqlStmtHandle, 7, SQL_C_LONG, &paymentTenure, 0, &indicator);
-    SQLBindCol(sqlStmtHandle, 8, SQL_C_WCHAR, startDate, sizeof(startDate), &indicator);
-    SQLBindCol(sqlStmtHandle, 9, SQL_C_WCHAR, endDate, sizeof(endDate), &indicator);
-    SQLBindCol(sqlStmtHandle, 10, SQL_C_WCHAR, status, sizeof(status), &indicator);
+    SQLBindCol(sqlStmtHandle, 1, SQL_C_LONG, &id, 0, &indicator);
+    SQLBindCol(sqlStmtHandle, 2, SQL_C_WCHAR, policyNumber, sizeof(policyNumber), &indicator);
+    SQLBindCol(sqlStmtHandle, 3, SQL_C_WCHAR, insuranceType, sizeof(insuranceType), &indicator);
+    SQLBindCol(sqlStmtHandle, 4, SQL_C_DOUBLE, &lifeCoverAmount, 0, &indicator);
+    SQLBindCol(sqlStmtHandle, 5, SQL_C_LONG, &coverageAge, 0, &indicator);
+    SQLBindCol(sqlStmtHandle, 6, SQL_C_LONG, &tobaccoConsumption, 0, &indicator);
+    SQLBindCol(sqlStmtHandle, 7, SQL_C_DOUBLE, &monthlyPremium, 0, &indicator);
+    SQLBindCol(sqlStmtHandle, 8, SQL_C_LONG, &paymentTenure, 0, &indicator);
+    SQLBindCol(sqlStmtHandle, 9, SQL_C_WCHAR, startDate, sizeof(startDate), &indicator);
+    SQLBindCol(sqlStmtHandle, 10, SQL_C_WCHAR, endDate, sizeof(endDate), &indicator);
+    SQLBindCol(sqlStmtHandle, 11, SQL_C_WCHAR, status, sizeof(status), &indicator);
+    SQLBindCol(sqlStmtHandle, 12, SQL_C_LONG, &id, 0, &indicator);
 
     // Fetching results
     bool hasResults = false;
     while (SQLFetch(sqlStmtHandle) == SQL_SUCCESS) {
         hasResults = true;
         std::wstringstream ss;
-        ss << L"Policy Number: " << policyNumber << L", Type: " << insuranceType
+        ss << L"Policy Id: " << id << L", Policy Number: " << policyNumber << L", Type: " << insuranceType
             << L", Cover Amount: " << lifeCoverAmount << L", Coverage Age: " << coverageAge
             << L", Tobacco: " << (tobaccoConsumption ? L"Yes" : L"No")
             << L", Monthly Premium: " << monthlyPremium << L", Payment Tenure: " << paymentTenure

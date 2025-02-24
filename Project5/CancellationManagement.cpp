@@ -151,14 +151,41 @@ bool CancellationManagement::processCancellation(int cancellationId, int underwr
     SQLBindParameter(sqlStmtHandle, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &underwriterId, 0, NULL);
     SQLBindParameter(sqlStmtHandle, 3, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &cancellationId, 0, NULL);
 
-    if (SQLExecute(sqlStmtHandle) == SQL_SUCCESS) {
-        std::wcout << L"Cancellation request " << (approve ? L"approved" : L"rejected") << L" successfully.\n";
+    if (SQLExecute(sqlStmtHandle) != SQL_SUCCESS) {
+        std::wcout << L"Error updating cancellation request.\n";
+        printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
         SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
-        return true;
+        return false;
     }
 
-    std::wcout << L"Error updating cancellation request.\n";
-    printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
+    std::wcout << L"Cancellation request " << (approve ? L"approved" : L"rejected") << L" successfully.\n";
     SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
-    return false;
+
+    // If cancellation is approved, update the policy status in policy_proposals
+    if (approve) {
+        SQLAllocHandle(SQL_HANDLE_STMT, sqlConnHandle, &sqlStmtHandle);
+        std::wstring updatePolicyQuery = L"UPDATE policy_proposals SET status = 'cancelled' WHERE id = (SELECT policy_id FROM cancellations WHERE id = ?)";
+
+        if (SQLPrepareW(sqlStmtHandle, (SQLWCHAR*)updatePolicyQuery.c_str(), SQL_NTS) != SQL_SUCCESS) {
+            std::wcout << L"Error preparing policy update statement.\n";
+            printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
+            SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
+            return false;
+        }
+
+        SQLBindParameter(sqlStmtHandle, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &cancellationId, 0, NULL);
+
+        if (SQLExecute(sqlStmtHandle) == SQL_SUCCESS) {
+            std::wcout << L"Policy status updated to 'cancelled'.\n";
+            SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
+            return true;
+        }
+
+        std::wcout << L"Error updating policy status.\n";
+        printSQLError(SQL_HANDLE_STMT, sqlStmtHandle);
+        SQLFreeHandle(SQL_HANDLE_STMT, sqlStmtHandle);
+        return false;
+    }
+
+    return true;
 }
